@@ -5,63 +5,244 @@
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=finos_legend-depot&metric=bugs&token=69394360757d5e1356312ddfee658a6b205e2c97)](https://sonarcloud.io/dashboard?id=legend-depot)
 
 
-# legend-depot
-The Legend Depot servers provide a rich `REST API` allowing users to query metadata fast and reliably which has been authored in `Legend Studio` and `Legend SDLC`
-Legend Depot has two main components:
-- **Depot Server:** provides read only metadata query REST API
-- **Depot Store Server:** manages internal metadata cache and sources it from maven style repository where models artifacts have been published.
- 
-## Getting started
+# Legend Depot
 
-### Development setup
+Legend Depot provides a rich `REST API` allowing users to query metadata fast and reliably that has been authored in `Legend Studio` and `Legend SDLC`. The Legend Depot servers provide the infrastructure for storing, managing, and accessing metadata artifacts produced by the Legend ecosystem.
 
-This application uses `Maven 3.6+` and `JDK 11` to build. Simply run `mvn install` to compile.
-In order to start the `Depot Server` and `Depot Store Server`, follow the instructions below.
+## Architecture and Components
 
-#### Setup Gitlab OAuth
+Legend Depot consists of two main components that work together to provide a comprehensive metadata management system:
 
-Follow the instructions [here](https://legend.finos.org/docs/getting-started/installation-guide#maven-install) to set up `Gitlab authentication`
-Add following callback url to config: `http://127.0.0.1:6201/depot-store/callback`
+### Depot Server
 
-> Certain store APIs required elevated permissions, add your `Gitlab handle` to `authorisedIdentities.json`
+The Depot Server provides a read-only metadata query REST API that allows users to:
+- Query and retrieve metadata entities
+- Access entity definitions, properties, and relationships
+- Retrieve file generations and transforms
+- Get dependency information between projects and entities
 
-#### Depot Store Server
+The Depot Server is designed for high-performance querying of metadata that has been cached in the underlying MongoDB database by the Depot Store Server.
 
-- Create a JSON configuration: _check out the [sample config](https://github.com/finos/legend-depot/blob/master/legend-depot-server/src/test/resources/sample-server-config.json)_
-- Configure your Artifacts Repository provider (artifactRepositoryProviderConfiguration)  _Check out the [instructions here](https://github.com/finos/legend-depot/blob/master/legend-depot-artifacts-services/README.md)_
-- Start an instance of `Mongo DB`: this is where your metadata will be stored: Add the `MongoDB URL` and `database name` to the `mongo` section of your config file
-- Start the server:
+### Depot Store Server
 
-```sh
-java -cp $SHADED_JAR_PATH org.finos.legend.depot.store.server.LegendDepotStoreServer server $CONFIG_DIR/config.json
+The Depot Store Server manages the internal metadata cache and sources it from maven-style repositories where model artifacts have been published. Its responsibilities include:
+- Registering metadata projects for tracking
+- Fetching artifacts from configured Maven repositories
+- Caching metadata in MongoDB for fast access
+- Managing versions and dependencies between projects
+- Handling project configuration and versioning
+
+### Additional Modules
+
+The Legend Depot system is composed of several specialized modules that handle different aspects of metadata management:
+
+- **Core Modules**: Basic functionality for data storage, scheduling, and authorization
+- **Artifacts Modules**: Handle artifact retrieval and storage from Maven repositories
+- **Entities Modules**: Manage entity metadata and relationships
+- **Generations Modules**: Process and store file generations (e.g., JSON Schema, Avro)
+- **Notifications Modules**: Handle system notifications and events
+
+### Component Interaction
+
+1. **Metadata Creation and Publishing**:
+   - Models are authored in Legend Studio
+   - Models are versioned and managed through Legend SDLC
+   - Artifacts are published to Maven repositories (e.g., Maven Central, GitLab Packages)
+
+2. **Metadata Ingestion**:
+   - Depot Store Server registers projects for tracking
+   - Scheduled jobs retrieve artifacts from Maven repositories
+   - Metadata is extracted and stored in MongoDB
+
+3. **Metadata Access**:
+   - Depot Server provides REST APIs for querying metadata
+   - Applications can retrieve metadata reliably and quickly
+   - API endpoints provide various query capabilities (by path, entity, version, etc.)
+
+## Prerequisites
+
+Before setting up Legend Depot, ensure you have the following prerequisites installed:
+
+- **Java 11**: Required for running the application
+- **Maven 3.6+**: Required for building the application
+- **MongoDB**: Required for metadata storage
+- **GitLab OAuth** (optional): For authentication if needed
+
+## Setup and Installation
+
+### Building from Source
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/finos/legend-depot.git
+   cd legend-depot
+   ```
+
+2. Build the project:
+   ```sh
+   mvn clean install -DskipTests
+   ```
+
+3. The build will produce JAR files for both servers in their respective `/target` directories.
+
+### Setting up GitLab OAuth (Optional)
+
+If you need authentication for your Depot Store Server:
+
+1. Follow the instructions [here](https://legend.finos.org/docs/getting-started/installation-guide#maven-install) to set up GitLab authentication
+2. Add the following callback URL to your OAuth application configuration: `http://127.0.0.1:6201/depot-store/callback`
+3. Add your GitLab handle to `authorisedIdentities.json` for elevated permissions
+
+### Configuring and Starting the Depot Store Server
+
+1. Create a JSON configuration file based on the [sample configuration](https://github.com/finos/legend-depot/blob/master/legend-depot-store-server/src/test/resources/sample-server-config.json)
+
+2. Configure your Maven artifact repository provider:
+   - Create a `settings.xml` file for Maven repository access (see [sample settings](https://github.com/finos/legend-depot/blob/master/legend-depot-store-server/src/test/resources/sample-repository-settings.xml))
+   - Specify the path to this file in your server configuration under `artifactRepositoryProviderConfiguration`
+   - Configure repository URLs, credentials, and local repository location
+
+3. Set up MongoDB:
+   - Install and start MongoDB locally (or use a hosted instance)
+   - Add the MongoDB URL and database name to the server configuration
+
+4. Start the server:
+   ```sh
+   java -cp legend-depot-store-server/target/legend-depot-store-server-<version>-shaded.jar org.finos.legend.depot.store.server.LegendDepotStoreServer server path/to/your/config.json
+   ```
+
+5. Verify the server is running by accessing:
+   - API Info: http://127.0.0.1:6201/depot-store/api/info
+   - Swagger UI: http://127.0.0.1:6201/depot-store/api/swagger
+
+### Configuring and Starting the Depot Server
+
+1. Create a JSON configuration file based on the [sample configuration](https://github.com/finos/legend-depot/blob/master/legend-depot-server/src/test/resources/sample-server-config.json)
+
+2. Configure the MongoDB connection to use the same database as the Store Server
+
+3. Start the server:
+   ```sh
+   java -cp legend-depot-server/target/legend-depot-server-<version>-shaded.jar org.finos.legend.depot.server.LegendDepotServer server path/to/your/config.json
+   ```
+
+4. Verify the server is running by accessing:
+   - API Info: http://127.0.0.1:6200/depot/api/info
+   - Swagger UI: http://127.0.0.1:6200/depot/api/swagger
+
+## Usage and Workflows
+
+### Registering Metadata Projects
+
+Metadata projects must be registered with the Depot Store Server before their artifacts can be cached and queried. This is a one-time setup for each project you want to track.
+
+#### Manual Registration
+
+Use the following REST API endpoint to register a project:
+
+```
+PUT http://127.0.0.1:6201/depot-store/api/projects/{projectId}/{groupId}/{artifactId}
 ```
 
-- Test by opening http://127.0.0.1:6201/depot-store/api/info or the `Swagger` [page](http://127.0.0.1:6201/depot-store/api/swagger)
+Where:
+- `projectId`: A unique identifier for the project in Legend Depot
+- `groupId`: The Maven group ID of the project
+- `artifactId`: The Maven artifact ID of the project
 
-#### Depot Server
+Optional query parameters:
+- `defaultBranch`: Specifies the default branch to use (defaults to "master" if not specified)
+- `latestVersion`: Explicitly sets the latest version (normally determined automatically)
 
-- Create a JSON configuration: Make sure to specify the `Mongo DB` where store server would cache metadata. _Check out the [sample config](https://github.com/finos/legend-depot/blob/master/legend-depot-store-server/src/test/resources/sample-server-config.json)_
-- Start the server:
-
+Example using curl:
 ```sh
-java -cp $SHADED_JAR_PATH org.finos.legend.depot.server.LegendDepotServer server $CONFIG_DIR/config.json
+curl -X PUT "http://127.0.0.1:6201/depot-store/api/projects/myproject/org.example/model-artifacts"
 ```
 
-- Test by opening http://127.0.0.1:6200/depot/api/info or the `Swagger` [page](http://127.0.0.1:6200/depot/api/swagger)
+After registration, the Depot Store Server will:
+1. Discover available versions from the configured Maven repositories
+2. Download artifacts for each version
+3. Extract and store metadata in MongoDB
+4. Build dependency information
 
+#### Verifying Project Registration
 
-### Register metadata projects with Depot Store Server
+To verify that your project was registered successfully, you can use:
 
-Metadata projects need to be registered in depot store so that the server can start fetching and caching the models for this project.
-This is a one off task and can be done:
-- **Manually:** using the end point `api/projects/{projectId}/{groupId}/{artifactId}`
-- **Automatically:** more to come on this space
+```
+GET http://127.0.0.1:6201/depot-store/api/projects
+```
 
-Crucially, key information are the `maven coordinates` and the modeling project its publishing its artifacts to.
+This endpoint returns a list of all registered projects.
+
+### Common Workflows
+
+#### Querying Metadata Entities
+
+To retrieve entity definitions for a specific project and version:
+
+```
+GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions/{version}/entities/packages
+```
+
+Example:
+```sh
+curl -X GET "http://127.0.0.1:6200/depot/api/projects/org.example/model-artifacts/versions/1.0.0/entities/packages"
+```
+
+#### Exploring Project Dependencies
+
+To view the dependencies for a specific project version:
+
+```
+GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions/{version}/dependencies
+```
+
+#### Retrieving File Generations
+
+To retrieve file generations (e.g., Avro schemas, JSON schemas) produced by a project:
+
+```
+GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions/{version}/generations/files
+```
+
+#### Finding Project Versions
+
+To list all available versions for a project:
+
+```
+GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions
+```
+
+#### Accessing the Latest Version
+
+To access metadata from the latest version of a project:
+
+```
+GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions/latest/entities/packages
+```
+
+## Troubleshooting
+
+### Maven Repository Connection Issues
+
+If you're having trouble connecting to Maven repositories:
+1. Verify your `settings.xml` file is correctly configured
+2. Check connection credentials for private repositories
+3. Use the API to check repository connection:
+   ```
+   GET http://127.0.0.1:6201/depot-store/api/artifacts/repository/{groupId}/{artifactId}/versions
+   ```
+
+### MongoDB Connection Problems
+
+If the application can't connect to MongoDB:
+1. Verify MongoDB is running
+2. Check the connection URL in your configuration
+3. Ensure the database exists or can be created
 
 ## Roadmap
 
-Visit our [roadmap](https://github.com/finos/legend#roadmap) to know more about the upcoming features.
+Visit our [roadmap](https://github.com/finos/legend#roadmap) to know more about upcoming features.
 
 ## Contributing
 
