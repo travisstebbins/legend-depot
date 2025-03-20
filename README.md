@@ -221,6 +221,20 @@ To access metadata from the latest version of a project:
 GET http://127.0.0.1:6200/depot/api/projects/{groupId}/{artifactId}/versions/latest/entities/packages
 ```
 
+## Pre-populating with Test Data
+
+To pre-populate the Legend Depot servers with test data for use in your legend-studio instance:
+
+1. Start both Depot Server and Depot Store Server
+2. Run the seed script:
+
+```bash
+cd scripts/seed
+./populate-depot.sh
+```
+
+This will populate the servers with sample projects and entities. See `scripts/seed/README.md` for more details.
+
 ## Troubleshooting
 
 ### Maven Repository Connection Issues
